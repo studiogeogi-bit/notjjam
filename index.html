@@ -12,6 +12,7 @@
 <link rel="apple-touch-icon" href="icon-192.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
 
 <style>
 :root {
@@ -632,8 +633,118 @@ body {
 .store-opt-name { font-size: 15px; color: var(--text); }
 .store-opt-check { margin-left: auto; color: #7a5c38; font-size: 18px; display: none; }
 .store-opt.selected .store-opt-check { display: block; }
+/* ── SETTINGS PAGE ── */
+.settings-section {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  margin-bottom: 14px;
+  overflow: hidden;
+}
+.settings-section-title {
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--text3);
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  padding: 12px 16px 8px;
+}
+.settings-row {
+  display: flex;
+  align-items: center;
+  padding: 13px 16px;
+  border-top: 1px solid var(--border);
+  gap: 12px;
+}
+.settings-row:first-of-type { border-top: none; }
+.settings-row-icon {
+  width: 32px; height: 32px;
+  border-radius: 8px;
+  background: var(--green-bg);
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+}
+.settings-row-label { font-size: 14px; color: var(--text); flex: 1; }
+.settings-row-sub { font-size: 12px; color: var(--text3); margin-top: 2px; }
+.settings-row-action {
+  font-size: 12px;
+  color: var(--text3);
+}
+.store-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--bg3);
+  border: 1px solid var(--border2);
+  border-radius: 20px;
+  padding: 5px 10px 5px 12px;
+  font-size: 13px;
+  color: var(--text);
+  margin: 4px;
+}
+.store-tag-del {
+  width: 16px; height: 16px;
+  border-radius: 50%;
+  background: var(--border2);
+  border: none;
+  color: var(--text2);
+  font-size: 12px;
+  cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  line-height: 1;
+}
+.store-tag-del:hover { background: var(--red-bg); color: var(--red); }
+.store-tags-wrap {
+  display: flex;
+  flex-wrap: wrap;
+  padding: 8px 12px 12px;
+}
+.add-store-row {
+  display: flex;
+  gap: 8px;
+  padding: 0 16px 14px;
+}
+.add-store-input {
+  flex: 1;
+  background: var(--bg3);
+  border: 1px solid var(--border2);
+  border-radius: var(--radius-sm);
+  padding: 9px 12px;
+  font-size: 14px;
+  color: var(--text);
+  font-family: 'Noto Sans KR', sans-serif;
+  outline: none;
+}
+.add-store-input:focus { border-color: var(--green); }
+.add-store-btn {
+  padding: 9px 16px;
+  background: #7a5c38;
+  color: #fff;
+  border: none;
+  border-radius: var(--radius-sm);
+  font-size: 14px;
+  font-weight: 500;
+  font-family: 'Noto Sans KR', sans-serif;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.ocr-progress {
+  background: var(--bg3);
+  border-radius: 4px;
+  height: 4px;
+  margin: 6px 0 2px;
+  overflow: hidden;
+  display: none;
+}
+.ocr-progress.show { display: block; }
+.ocr-progress-fill {
+  height: 100%;
+  background: #7a5c38;
+  border-radius: 4px;
+  transition: width 0.3s;
+  width: 0%;
+}
 </style>
-</head>
 <body>
 
 <!-- HEADER -->
@@ -667,6 +778,7 @@ body {
   <div class="tab active" onclick="switchPage('list')">재고 목록</div>
   <div class="tab" onclick="switchPage('scan')">스캔 등록</div>
   <div class="tab" onclick="switchPage('notif')">알림</div>
+  <div class="tab" onclick="switchPage('settings')">설정</div>
 </div>
 
 <!-- PAGE: LIST -->
@@ -727,8 +839,27 @@ body {
     </div>
   </div>
 
-  <button class="btn-primary" id="scan-btn" onclick="toggleCamera()">카메라 스캔 시작</button>
-  <button class="btn-secondary" onclick="toggleManual()">직접 입력하기</button>
+  <button class="btn-primary" id="scan-btn" onclick="cameraActive ? captureAndOCR() : toggleCamera()">카메라 스캔 시작</button>
+  <div class="ocr-progress" id="ocr-progress"><div class="ocr-progress-fill" id="ocr-progress-fill"></div></div>
+
+  <div style="display:flex;gap:8px;margin-bottom:8px">
+    <button class="btn-secondary" style="flex:1;margin-bottom:0" onclick="document.getElementById('img-upload').click()">
+      <span style="display:flex;align-items:center;justify-content:center;gap:6px">
+        <svg width="15" height="15" viewBox="0 0 15 15" fill="none"><rect x="1" y="3" width="13" height="10" rx="2" stroke="currentColor" stroke-width="1.3"/><circle cx="5" cy="7" r="1.5" stroke="currentColor" stroke-width="1.3"/><path d="M1 10.5l3.5-3 3 2.5 2-1.5 3.5 3" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round"/></svg>
+        갤러리에서 선택
+      </span>
+    </button>
+    <button class="btn-secondary" style="flex:1;margin-bottom:0" onclick="toggleManual()">직접 입력하기</button>
+  </div>
+  <input type="file" id="img-upload" accept="image/*" style="display:none" onchange="handleImageUpload(event)">
+
+  <div id="img-preview-wrap" style="display:none;margin-bottom:12px">
+    <div style="position:relative;border-radius:var(--radius);overflow:hidden;border:1px solid var(--border2)">
+      <img id="img-preview" style="width:100%;max-height:200px;object-fit:cover;display:block">
+      <button onclick="clearImageUpload()" style="position:absolute;top:8px;right:8px;background:rgba(0,0,0,0.5);border:none;color:#fff;width:26px;height:26px;border-radius:50%;font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center">×</button>
+    </div>
+    <div style="font-size:12px;color:var(--text2);margin-top:6px;text-align:center" id="img-status-text">이미지 분석 중...</div>
+  </div>
 
   <div class="ai-result" id="ai-result">
     <div class="ai-result-header">
@@ -814,6 +945,68 @@ body {
     </div>
     <span class="nav-label">알림</span>
   </div>
+  <div class="nav-item" id="nav-settings" onclick="switchPage('settings')">
+    <div class="nav-icon-wrap">
+      <svg width="22" height="22" viewBox="0 0 22 22" fill="none">
+        <circle cx="11" cy="11" r="3" stroke="currentColor" stroke-width="1.5" opacity="0.6"/>
+        <path d="M11 2v2M11 18v2M2 11h2M18 11h2M4.2 4.2l1.4 1.4M16.4 16.4l1.4 1.4M4.2 17.8l1.4-1.4M16.4 5.6l1.4-1.4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" opacity="0.6"/>
+      </svg>
+    </div>
+    <span class="nav-label">설정</span>
+  </div>
+</div>
+
+<!-- PAGE: SETTINGS -->
+<div id="page-settings" class="page">
+  <div class="settings-section">
+    <div class="settings-section-title">매장 관리</div>
+    <div class="store-tags-wrap" id="store-tags"></div>
+    <div class="add-store-row">
+      <input class="add-store-input" id="new-store-input" type="text" placeholder="새 매장명 입력 (예: 부평점)">
+      <button class="add-store-btn" onclick="addStore()">추가</button>
+    </div>
+  </div>
+
+  <div class="settings-section">
+    <div class="settings-section-title">알림 설정</div>
+    <div class="settings-row">
+      <div class="settings-row-icon">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M8 1.5C5.5 1.5 3.5 3.5 3.5 6v3.5L2 11h12l-1.5-1.5V6C12.5 3.5 10.5 1.5 8 1.5z" stroke="#7a5c38" stroke-width="1.2" fill="none"/><path d="M6.5 13.5C6.5 14.3 7.2 15 8 15s1.5-.7 1.5-1.5" stroke="#7a5c38" stroke-width="1.2" stroke-linecap="round"/></svg>
+      </div>
+      <div style="flex:1">
+        <div class="settings-row-label">소비기한 임박 알림</div>
+        <div class="settings-row-sub">만료 7일 전부터 매일 오전 8시</div>
+      </div>
+      <div class="settings-row-action" style="color:#7a5c38;font-weight:500">켜짐</div>
+    </div>
+    <div class="settings-row">
+      <div class="settings-row-icon">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="6.5" stroke="#7a5c38" stroke-width="1.2"/><path d="M8 5v3.5l2 2" stroke="#7a5c38" stroke-width="1.2" stroke-linecap="round"/></svg>
+      </div>
+      <div style="flex:1">
+        <div class="settings-row-label">알림 시간</div>
+        <div class="settings-row-sub">매일 오전 8:00</div>
+      </div>
+      <div class="settings-row-action">오전 8:00</div>
+    </div>
+  </div>
+
+  <div class="settings-section">
+    <div class="settings-section-title">앱 정보</div>
+    <div class="settings-row">
+      <div style="flex:1">
+        <div class="settings-row-label">not JJAM</div>
+        <div class="settings-row-sub">유통기한 관리 앱 v1.0</div>
+      </div>
+    </div>
+    <div class="settings-row" style="cursor:pointer" onclick="if(confirm('모든 재고 데이터를 초기화하시겠습니까?')){localStorage.clear();location.reload();}">
+      <div style="flex:1">
+        <div class="settings-row-label" style="color:var(--red)">데이터 전체 초기화</div>
+        <div class="settings-row-sub">모든 재고 데이터가 삭제됩니다</div>
+      </div>
+      <svg width="8" height="14" viewBox="0 0 8 14" fill="none"><path d="M1 1l6 6-6 6" stroke="var(--text3)" stroke-width="1.5" stroke-linecap="round"/></svg>
+    </div>
+  </div>
 </div>
 
 <!-- STORE MODAL -->
@@ -826,8 +1019,7 @@ body {
 
 <script>
 // ── STATE ──
-const STORES = ['송도점','구월점','연수점'];
-let currentStore = localStorage.getItem('currentStore') || '송도점';
+let currentStore = localStorage.getItem('currentStore') || (getStores()[0] || '송도점');
 let currentFilter = 'all';
 let cameraActive = false;
 let manualOpen = false;
@@ -977,7 +1169,7 @@ function filterBy(el, f) {
   renderList();
 }
 
-// ── CAMERA ──
+// ── CAMERA + OCR ──
 async function toggleCamera() {
   if (cameraActive) { stopCamera(); return; }
   const btn = document.getElementById('scan-btn');
@@ -992,7 +1184,7 @@ async function toggleCamera() {
     dot.className = 'status-dot active';
     txt.textContent = '카메라 권한 요청 중...';
     stream = await navigator.mediaDevices.getUserMedia({
-      video: { facingMode: 'environment', width: { ideal: 1280 } }
+      video: { facingMode: 'environment', width: { ideal: 1280 }, height: { ideal: 720 } }
     });
     video.srcObject = stream;
     video.style.display = 'block';
@@ -1000,21 +1192,245 @@ async function toggleCamera() {
     frame.classList.add('show');
     line.classList.add('show');
     cameraActive = true;
-    btn.textContent = '스캔 중지';
+    btn.textContent = '지금 인식하기';
     dot.className = 'status-dot active';
-    txt.textContent = '포장지의 바코드 또는 날짜를 비춰주세요';
-    // simulate scan after 3s
-    setTimeout(simulateScan, 3000);
+    txt.textContent = '날짜가 잘 보이게 비춘 후 버튼을 누르세요';
   } catch(err) {
     dot.className = 'status-dot error';
-    txt.textContent = '카메라 권한이 필요합니다. 직접 입력을 사용해주세요.';
+    txt.textContent = '카메라 권한 없음 — 직접 입력을 사용해주세요';
     btn.textContent = '카메라 스캔 시작';
-    // fallback: show manual + mock result
-    setTimeout(() => { simulateScan(); }, 500);
+    document.getElementById('manual-form').style.display = 'block';
+    manualOpen = true;
+    if (!document.getElementById('f-in').value)
+      document.getElementById('f-in').value = new Date().toISOString().split('T')[0];
   }
 }
 
-function stopCamera() {
+async function captureAndOCR() {
+  if (!cameraActive) return;
+  const video = document.getElementById('cam-video');
+  const canvas = document.getElementById('cam-canvas');
+  const dot = document.getElementById('status-dot');
+  const txt = document.getElementById('status-text');
+  const prog = document.getElementById('ocr-progress');
+  const progFill = document.getElementById('ocr-progress-fill');
+
+  canvas.width = video.videoWidth;
+  canvas.height = video.videoHeight;
+  const ctx = canvas.getContext('2d');
+  ctx.drawImage(video, 0, 0);
+
+  // 대비 향상 (날짜 인식률 향상)
+  const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+  const data = imageData.data;
+  for (let i = 0; i < data.length; i += 4) {
+    const avg = (data[i] + data[i+1] + data[i+2]) / 3;
+    const val = avg > 128 ? 255 : 0;
+    data[i] = data[i+1] = data[i+2] = val;
+  }
+  ctx.putImageData(imageData, 0, 0);
+
+  stopCamera();
+  dot.className = 'status-dot active';
+  txt.textContent = 'OCR 텍스트 인식 중...';
+  prog.classList.add('show');
+  progFill.style.width = '10%';
+
+  try {
+    const result = await Tesseract.recognize(canvas, 'kor+eng', {
+      logger: m => {
+        if (m.status === 'recognizing text') {
+          progFill.style.width = Math.round(m.progress * 90 + 10) + '%';
+        }
+      }
+    });
+
+    progFill.style.width = '100%';
+    const rawText = result.data.text;
+    const parsed = parseDateFromOCR(rawText);
+
+    if (parsed.expDate) {
+      const days = daysLeft(parsed.expDate);
+      const today = new Date().toISOString().split('T')[0];
+
+      document.getElementById('r-name').textContent = parsed.name || '직접 입력 필요';
+      document.getElementById('r-cat').textContent  = '—';
+      document.getElementById('r-in').textContent   = fmtDate(today);
+      document.getElementById('r-exp').textContent  = fmtDate(parsed.expDate);
+      document.getElementById('r-days').textContent = days <= 0 ? '오늘 만료' : `${days}일`;
+      document.getElementById('r-days').style.color = days <= 0 ? 'var(--red)' : days <= 7 ? 'var(--amber)' : 'var(--green)';
+      document.getElementById('ai-result').classList.add('show');
+
+      document.getElementById('f-name').value = parsed.name || '';
+      document.getElementById('f-in').value   = today;
+      document.getElementById('f-exp').value  = parsed.expDate;
+      document.getElementById('manual-form').style.display = 'block';
+      manualOpen = true;
+
+      dot.className = 'status-dot done';
+      txt.textContent = `날짜 인식 완료! 정보를 확인 후 등록하세요.`;
+    } else {
+      dot.className = 'status-dot error';
+      txt.textContent = '날짜를 찾지 못했어요. 직접 입력해주세요.';
+      document.getElementById('manual-form').style.display = 'block';
+      if (!document.getElementById('f-in').value)
+        document.getElementById('f-in').value = new Date().toISOString().split('T')[0];
+      manualOpen = true;
+    }
+    setTimeout(() => { prog.classList.remove('show'); progFill.style.width = '0%'; }, 800);
+  } catch(e) {
+    dot.className = 'status-dot error';
+    txt.textContent = '인식 실패. 직접 입력해주세요.';
+    prog.classList.remove('show');
+    document.getElementById('manual-form').style.display = 'block';
+    manualOpen = true;
+  }
+}
+
+function parseDateFromOCR(text) {
+  const result = { expDate: null, name: null };
+  // 소비기한 키워드 근처 날짜 우선 탐색
+  const patterns = [
+    /소비[기기]?한[:\s]*(\d{2,4})[.\-\/년](\d{1,2})[.\-\/월](\d{1,2})/,
+    /유통[기기]?한[:\s]*(\d{2,4})[.\-\/년](\d{1,2})[.\-\/월](\d{1,2})/,
+    /까지[:\s]*(\d{2,4})[.\-\/년](\d{1,2})[.\-\/월](\d{1,2})/,
+    /EXP[:\s.]*(\d{2,4})[.\-\/](\d{1,2})[.\-\/](\d{1,2})/i,
+    /BEST\s*BY[:\s]*(\d{2,4})[.\-\/](\d{1,2})[.\-\/](\d{1,2})/i,
+    /USE\s*BY[:\s]*(\d{2,4})[.\-\/](\d{1,2})[.\-\/](\d{1,2})/i,
+    /BB[:\s]*(\d{2,4})[.\-\/](\d{1,2})[.\-\/](\d{1,2})/i,
+    // 일반 날짜 패턴
+    /(\d{4})[.\-\/년](\d{1,2})[.\-\/월](\d{1,2})/,
+    /(\d{2})[.\-\/](\d{2})[.\-\/](\d{2})/,
+  ];
+
+  for (const pat of patterns) {
+    const m = text.match(pat);
+    if (m) {
+      let y = parseInt(m[1]), mo = parseInt(m[2]), d = parseInt(m[3]);
+      if (y < 100) y += 2000;
+      if (mo > 12) { [mo, d] = [d, mo]; }
+      if (y >= 2020 && y <= 2035 && mo >= 1 && mo <= 12 && d >= 1 && d <= 31) {
+        result.expDate = `${y}-${String(mo).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+        break;
+      }
+    }
+  }
+  return result;
+}
+
+// ── IMAGE UPLOAD OCR ──
+function handleImageUpload(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+
+  const reader = new FileReader();
+  reader.onload = async (e) => {
+    const imgSrc = e.target.result;
+
+    // 미리보기 표시
+    const previewWrap = document.getElementById('img-preview-wrap');
+    const preview = document.getElementById('img-preview');
+    const imgStatusText = document.getElementById('img-status-text');
+    preview.src = imgSrc;
+    previewWrap.style.display = 'block';
+    imgStatusText.textContent = 'OCR 텍스트 인식 중...';
+
+    // 프로그레스 바 표시
+    const prog = document.getElementById('ocr-progress');
+    const progFill = document.getElementById('ocr-progress-fill');
+    prog.classList.add('show');
+    progFill.style.width = '10%';
+
+    const dot = document.getElementById('status-dot');
+    const txt = document.getElementById('status-text');
+    dot.className = 'status-dot active';
+    txt.textContent = '이미지 분석 중...';
+
+    try {
+      // 이미지 → canvas 대비 향상
+      const img = new Image();
+      img.onload = async () => {
+        const canvas = document.getElementById('cam-canvas');
+        canvas.width = img.width;
+        canvas.height = img.height;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0);
+
+        // 대비 향상 처리
+        const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+        const data = imageData.data;
+        for (let i = 0; i < data.length; i += 4) {
+          const avg = (data[i] + data[i+1] + data[i+2]) / 3;
+          const val = avg > 140 ? 255 : 0;
+          data[i] = data[i+1] = data[i+2] = val;
+        }
+        ctx.putImageData(imageData, 0, 0);
+
+        const result = await Tesseract.recognize(canvas, 'kor+eng', {
+          logger: m => {
+            if (m.status === 'recognizing text') {
+              progFill.style.width = Math.round(m.progress * 85 + 10) + '%';
+              imgStatusText.textContent = `인식 중... ${Math.round(m.progress * 100)}%`;
+            }
+          }
+        });
+
+        progFill.style.width = '100%';
+        const rawText = result.data.text;
+        const parsed = parseDateFromOCR(rawText);
+
+        if (parsed.expDate) {
+          const days = daysLeft(parsed.expDate);
+          const today = new Date().toISOString().split('T')[0];
+
+          document.getElementById('r-name').textContent = parsed.name || '직접 입력 필요';
+          document.getElementById('r-cat').textContent  = '—';
+          document.getElementById('r-in').textContent   = fmtDate(today);
+          document.getElementById('r-exp').textContent  = fmtDate(parsed.expDate);
+          document.getElementById('r-days').textContent = days <= 0 ? '오늘 만료' : `${days}일`;
+          document.getElementById('r-days').style.color = days <= 0 ? 'var(--red)' : days <= 7 ? 'var(--amber)' : 'var(--green)';
+          document.getElementById('ai-result').classList.add('show');
+
+          document.getElementById('f-in').value  = today;
+          document.getElementById('f-exp').value = parsed.expDate;
+          document.getElementById('manual-form').style.display = 'block';
+          manualOpen = true;
+
+          dot.className = 'status-dot done';
+          txt.textContent = '날짜 인식 완료! 정보를 확인 후 등록하세요.';
+          imgStatusText.textContent = `소비기한 ${fmtDate(parsed.expDate)} 인식됨`;
+        } else {
+          dot.className = 'status-dot error';
+          txt.textContent = '날짜를 찾지 못했어요. 직접 입력해주세요.';
+          imgStatusText.textContent = '날짜 인식 실패 — 직접 입력해주세요';
+          document.getElementById('manual-form').style.display = 'block';
+          if (!document.getElementById('f-in').value)
+            document.getElementById('f-in').value = new Date().toISOString().split('T')[0];
+          manualOpen = true;
+        }
+        setTimeout(() => { prog.classList.remove('show'); progFill.style.width = '0%'; }, 1000);
+      };
+      img.src = imgSrc;
+    } catch(err) {
+      dot.className = 'status-dot error';
+      txt.textContent = '이미지 인식 실패. 직접 입력해주세요.';
+      imgStatusText.textContent = '인식 실패';
+      prog.classList.remove('show');
+      document.getElementById('manual-form').style.display = 'block';
+      manualOpen = true;
+    }
+  };
+  reader.readAsDataURL(file);
+  event.target.value = ''; // 같은 파일 재선택 가능하게
+}
+
+function clearImageUpload() {
+  document.getElementById('img-preview-wrap').style.display = 'none';
+  document.getElementById('img-preview').src = '';
+  document.getElementById('img-upload').value = '';
+  document.getElementById('status-dot').className = 'status-dot';
+  document.getElementById('status-text').textContent = '카메라 버튼을 눌러 스캔하세요';
+}
   if (stream) { stream.getTracks().forEach(t => t.stop()); stream = null; }
   const video = document.getElementById('cam-video');
   video.style.display = 'none';
@@ -1025,41 +1441,6 @@ function stopCamera() {
   document.getElementById('scan-btn').textContent = '카메라 스캔 시작';
   document.getElementById('status-dot').className = 'status-dot';
   document.getElementById('status-text').textContent = '카메라 버튼을 눌러 스캔하세요';
-}
-
-const mockItems = [
-  { name: '국산 등심 500g', cat: '육류', expOffset: 4 },
-  { name: '하인즈 케첩 340g', cat: '소스', expOffset: 83 },
-  { name: '서울우유 요거트', cat: '유제품', expOffset: 10 },
-  { name: '냉동 만두 350g', cat: '냉동식품', expOffset: 120 },
-  { name: '깻잎 한 묶음', cat: '채소', expOffset: 5 },
-];
-
-function simulateScan() {
-  const mock = mockItems[Math.floor(Math.random() * mockItems.length)];
-  const today = new Date().toISOString().split('T')[0];
-  const expDt = new Date(); expDt.setDate(expDt.getDate() + mock.expOffset);
-  const expDate = expDt.toISOString().split('T')[0];
-  const days = mock.expOffset;
-
-  document.getElementById('r-name').textContent = mock.name;
-  document.getElementById('r-cat').textContent  = mock.cat;
-  document.getElementById('r-in').textContent   = fmtDate(today);
-  document.getElementById('r-exp').textContent  = fmtDate(expDate);
-  document.getElementById('r-days').textContent = days <= 0 ? '오늘 만료' : `${days}일`;
-  document.getElementById('r-days').style.color = days <= 0 ? 'var(--red)' : days <= 7 ? 'var(--amber)' : 'var(--green)';
-  document.getElementById('ai-result').classList.add('show');
-
-  document.getElementById('f-name').value = mock.name;
-  document.getElementById('f-cat').value  = mock.cat;
-  document.getElementById('f-in').value   = today;
-  document.getElementById('f-exp').value  = expDate;
-  document.getElementById('manual-form').style.display = 'block';
-  manualOpen = true;
-
-  document.getElementById('status-dot').className = 'status-dot done';
-  document.getElementById('status-text').textContent = '인식 완료! 정보를 확인 후 등록하세요.';
-  stopCamera();
 }
 
 function toggleManual() {
@@ -1179,14 +1560,63 @@ function scheduleNotifications() {
   }
 }
 
-// ── STORE MODAL ──
-function openStoreModal() {
-  document.getElementById('store-list').innerHTML = STORES.map(s => `
+// ── STORE SETTINGS ──
+function getStores() {
+  try { return JSON.parse(localStorage.getItem('stores')) || ['송도점','구월점','연수점']; }
+  catch(e) { return ['송도점','구월점','연수점']; }
+}
+function saveStores(arr) { localStorage.setItem('stores', JSON.stringify(arr)); }
+
+function renderStoreTags() {
+  const stores = getStores();
+  document.getElementById('store-tags').innerHTML = stores.map(s => `
+    <div class="store-tag">
+      ${s}
+      <button class="store-tag-del" onclick="deleteStore('${s}')">×</button>
+    </div>`).join('');
+}
+
+function addStore() {
+  const input = document.getElementById('new-store-input');
+  const name = input.value.trim();
+  if (!name) return;
+  const stores = getStores();
+  if (stores.includes(name)) { alert('이미 있는 매장명입니다.'); return; }
+  stores.push(name);
+  saveStores(stores);
+  input.value = '';
+  renderStoreTags();
+  renderStoreModal();
+}
+
+function deleteStore(name) {
+  if (getStores().length <= 1) { alert('최소 1개의 매장이 필요합니다.'); return; }
+  if (!confirm(`"${name}" 매장을 삭제하시겠습니까?`)) return;
+  const stores = getStores().filter(s => s !== name);
+  saveStores(stores);
+  if (currentStore === name) {
+    currentStore = stores[0];
+    localStorage.setItem('currentStore', currentStore);
+    document.getElementById('current-store-name').textContent = currentStore;
+    renderList();
+  }
+  renderStoreTags();
+  renderStoreModal();
+}
+
+function renderStoreModal() {
+  const stores = getStores();
+  document.getElementById('store-list').innerHTML = stores.map(s => `
     <div class="store-opt ${s===currentStore?'selected':''}" onclick="selectStore('${s}')">
       <div class="store-opt-dot"></div>
       <span class="store-opt-name">${s}</span>
       <span class="store-opt-check">✓</span>
     </div>`).join('');
+}
+
+// ── STORE MODAL ──
+function openStoreModal() {
+  renderStoreModal();
   document.getElementById('store-modal').classList.add('show');
 }
 function closeStoreModal(e) {
@@ -1203,14 +1633,15 @@ function selectStore(name) {
 
 // ── NAVIGATION ──
 function switchPage(page) {
-  ['list','scan','notif'].forEach(p => {
+  ['list','scan','notif','settings'].forEach(p => {
     document.getElementById('page-' + p).classList.toggle('active', p === page);
     document.getElementById('nav-' + p).classList.toggle('active', p === page);
   });
   document.querySelectorAll('.tab').forEach((t,i) => {
-    t.classList.toggle('active', ['list','scan','notif'][i] === page);
+    t.classList.toggle('active', ['list','scan','notif','settings'][i] === page);
   });
   if (page === 'notif') renderNotifs();
+  if (page === 'settings') renderStoreTags();
   if (page !== 'scan' && cameraActive) stopCamera();
 }
 
@@ -1227,6 +1658,7 @@ function checkInstallBanner() {
 
 // ── INIT ──
 seedIfEmpty();
+document.getElementById('current-store-name').textContent = currentStore;
 renderList();
 checkInstallBanner();
 setupPushNotifications();
